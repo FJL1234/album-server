@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+    <link rel="stylesheet" href="stylesheets/album.css">
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h2>Album Name &nbsp;&nbsp;&nbsp; <span class="album-title"><%= currentAlbum%></span></h2>
+      </header>
+
+      <div class="content">
+        <div class="left">
+          <ul class="album-list">
+            <% albumName.forEach(albn=>{ %>
+              <li>
+                <a class="albumName" href="/album/albums/<%= albn%>"><%=albn%></a>
+                <button class="btn-del-album"><a href="/album/del/album-list/<%= albn%>">X</a></button>
+              </li>
+            <% }) %>
+          </ul>
+        </div>
+
+        <div class="right">
+          <div class="button-grp">
+            <form class="addname" action="/album/addAlbumName" method="post">
+              <input id="new-alb" type="text" name="new-album" placeholder="请输入相册名">
+              <input type="submit" value="创建相册">
+            </form>
+
+            <form class="addphoto" action="/album/addPhotos" method="post" enctype="multipart/form-data">
+              <input id="add-file" type="file" name="singlePhoto">
+              <input type="submit" value="添加图片">
+            </form>
+          </div>
+
+          <div class="photo-list">
+            <% for(let i=0; i<pageContent.length; i++){ %>
+              <div class="photo">
+                <img src="/album/show/<%=pageContent[i]%>" alt="">
+                <button><a href="/album/del/photos/<%=pageContent[i]%>">X</a></button>
+              </div>
+            <% } %>
+          </div>
+
+          <nav>
+            <ul>
+              <li><a href="/album/albums/page2/first">First</a></li>
+              <% for(let i=0; i<(photoList[currentAlbum].length)/photoPerPage; i++){ %>
+                <li>
+                  <a href="/album/albums/page/<%= i%>"><%= i+1 %></a>
+                </li>
+              <% } %>
+
+              <li><a href="/album/albums/page2/last">Last</a></li>
+            </ul>
+          </nav>
+
+        </div>
+
+      </div>
+    </div>
+
+    <script type="text/javascript" src="javascripts/album.js"></script>
+
+    <script type="text/javascript">
+    var albumTitle = document.querySelector(".album-title");
+    var albumList = document.querySelector(".album-list");
+    var albumList_a = document.querySelectorAll(".album-list .albumName");
+    var albumList_btnadom = document.querySelectorAll(".album-list button a");
+    var photoList = document.querySelector(".photo-list");
+    var pageNavLink = document.querySelectorAll("nav > ul > li > a ");
+
+
+    albumList_a.forEach(a=>a.addEventListener("click",function (event) {  //使用ajax实现切换相册的功能
+      event.preventDefault();
+      const href = event.target.getAttribute("href");
+      var xhr = new XMLHttpRequest();
+      xhr.open("get",href);
+      xhr.responseType = "json";
+      xhr.onreadystatechange = function () {
+        if(xhr.status == 200 && xhr.readyState == 4){
+          photoList.innerHTML = "";  //清空图片区域
+          for(let i=0; i<xhr.response.pageContent.length; i++){ //渲染图片区域
+          var photo = document.createElement("div");   //新建一个div元素
+          photo.className = "photo";
+          photoList.appendChild(photo);
+          console.log(xhr.response.pageContent[i]);
+          var imgurl = "/album/show/" + xhr.response.pageContent[i];
+          const img = new Image();  //新建一个图片
+          img.src = imgurl;
+          photo.appendChild(img);
+          var button = document.createElement("button");  //新建一个按钮
+          var adom = document.createElement("a");
+          adom.innerText = "X";
+          adom.href = "/album/del/photos/" + xhr.response.pageContent[i];
+          button.appendChild(adom);
+          photo.appendChild(button);
+        }
+
+        albumTitle.innerText = xhr.response.currentAlbum;  //切换当前的相册名
+
+          //重新渲染分页区域
+          var pageNav = document.querySelector("nav>ul");  //分页区域
+          pageNav.innerHTML = "";  //清空分页区域
+
+          var pageNavFirst = document.createElement("li");  //first的li元素
+          var pageNavLast = document.createElement("li");  //last的li元素
+          var pageNavFirstLink = document.createElement("a");  //first的a元素
+          var pageNavLastLink = document.createElement("a"); //last的a元素
+
+          pageNavFirstLink.href = "/album/albums/page2/first";
+          pageNavLastLink.href = "/album/albums/page2/last";
+          pageNavFirstLink.innerText = "First";
+          pageNavLastLink.innerText = "Last";
+          pageNavFirst.appendChild(pageNavFirstLink);
+          pageNavLast.appendChild(pageNavLastLink);
+          pageNav.appendChild(pageNavFirst);
+
+          // console.log(xhr.response.clbContent);
+          for(let i=0; i<xhr.response.clbContent.length/xhr.response.photoPerPage; i++){  // 渲染当前相册的页数
+            let pageNavLi = document.createElement("li");  //新建一个li元素
+            let pageNavLink = document.createElement("a");  //新建一个a元素
+            pageNavLink.href = "/album/albums/page/" + i; //设置a元素的地址
+            pageNavLink.innerText = `${i+1}`;   //设置a元素的文本
+            pageNavLi.appendChild(pageNavLink);
+            pageNav.appendChild(pageNavLi);
+        }
+          pageNav.appendChild(pageNavLast);
+          var pageNavLink2 = document.querySelectorAll("nav > ul > li > a");
+          var pageNavLi2 = document.querySelectorAll("nav>ul>li");
+          pageNavClick(pageNavLink2);
+          pageClick(pageNavLink2,pageNavLi2);
+          console.log(xhr.response.pageContent);
+        }
+      }
+      xhr.send();
+    }));
+
+
+    albumList_btnadom.forEach(a=>a.addEventListener("click",function (event) {  //相册的删除按钮功能
+        event.preventDefault();
+        const href = event.target.getAttribute("href");
+        var xhr = new XMLHttpRequest();
+        xhr.open("get",href);
+        xhr.responseType = "json";
+        xhr.onreadystatechange = function () {
+          if(xhr.status == 200 && xhr.readyState == 4){
+            console.log(xhr.response.defaultContent);
+              albumList_a.forEach(a=>{if(a.innerText == xhr.response.delalbumName && a.innerText == xhr.response.delCurralbum) {
+                console.log("1111");
+                a.parentNode.outerHTML = "";
+                photoList.innerHTML = "";
+                albumTitle.innerText = xhr.response.currentAlbum;
+                for(let i=0; i<xhr.response.pageContent.length; i++){
+                  var photo = document.createElement("div");   //新建一个div元素
+                  photo.className = "photo";
+                  photoList.appendChild(photo);
+                  var imgurl = "/album/show/" + xhr.response.pageContent[i];
+                  const img = new Image();  //新建一个图片
+                  img.src = imgurl;
+                  photo.appendChild(img);
+                  var button = document.createElement("button");  //新建一个按钮
+                  var adom = document.createElement("a");
+                  adom.innerText = "X";
+                  adom.href = "/album/del/photos/" + xhr.response.pageContent[i];
+                  button.appendChild(adom);
+                  photo.appendChild(button);
+                }
+
+                  //重新渲染分页区域
+                  var pageNav = document.querySelector("nav>ul");  //分页区域
+                  pageNav.innerHTML = "";  //清空分页区域
+
+                  var pageNavFirst = document.createElement("li");  //first的li元素
+                  var pageNavLast = document.createElement("li");  //last的li元素
+                  var pageNavFirstLink = document.createElement("a");  //first的a元素
+                  var pageNavLastLink = document.createElement("a"); //last的a元素
+
+                  pageNavFirstLink.href = "/album/albums/page2/first";
+                  pageNavLastLink.href = "/album/albums/page2/last";
+                  pageNavFirstLink.innerText = "First";
+                  pageNavLastLink.innerText = "Last";
+                  pageNavFirst.appendChild(pageNavFirstLink);
+                  pageNavLast.appendChild(pageNavLastLink);
+                  pageNav.appendChild(pageNavFirst);
+
+                  console.log("22222");
+                  console.log(xhr.response.defaultContent,xhr.response.photoPerPage);
+                  for(let i=0; i<xhr.response.defaultContent.length/xhr.response.photoPerPage; i++){  // 渲染当前相册的页数
+                    console.log("111");
+                    let pageNavLi = document.createElement("li");  //新建一个li元素
+                    let pageNavLink = document.createElement("a");  //新建一个a元素
+                    pageNavLink.href = "/album/albums/page/" + i; //设置a元素的地址
+                    pageNavLink.innerText = `${i+1}`;   //设置a元素的文本
+                    pageNavLi.appendChild(pageNavLink);
+                    pageNav.appendChild(pageNavLi);
+                }
+                  pageNav.appendChild(pageNavLast);
+                  var pageNavLink2 = document.querySelectorAll("nav > ul > li > a");
+                  var pageNavLi2 = document.querySelectorAll("nav>ul>li");
+                  pageNavClick(pageNavLink2);
+                  pageClick(pageNavLink2,pageNavLi2);
+
+                 }else if(a.innerText == xhr.response.delalbumName){
+                   console.log("222");
+                   a.parentNode.outerHTML = "";
+                 }
+              })
+            }
+          }
+
+        xhr.send();
+
+    }));
+
+
+
+      function pageNavClick(pageNavLink) {
+        pageNavLink.forEach(a=>a.addEventListener("click",function (event) {  //切换页数显示相对应的图片
+          event.preventDefault();
+          const href = event.target.getAttribute("href");
+          var xhr = new XMLHttpRequest();
+          xhr.open("get",href);
+          xhr.responseType = "json";
+          xhr.onreadystatechange = function () {
+            if(xhr.status == 200 && xhr.readyState == 4){
+              var photoList = document.querySelector(".photo-list");
+              photoList.innerHTML = "";  //清空图片区域
+              for(let i=0; i<xhr.response.length; i++){
+                var photo = document.createElement("div");   //新建一个div元素
+                photo.className = "photo";
+                photoList.appendChild(photo);
+                var imgurl = "/album/show/" + xhr.response[i];
+                const img = new Image();
+                img.src = imgurl;
+                photo.appendChild(img);
+                var button = document.createElement("button");  //新建一个按钮
+                var adom = document.createElement("a");
+                adom.innerText = "X";
+                adom.href = "/album/del/photos/pageContent[i]";
+                button.appendChild(adom);
+                photo.appendChild(button);
+              }
+            }
+          };
+          xhr.send();
+        }))
+      }
+
+      pageNavClick(pageNavLink);
+
+
+
+
+    </script>
+
+  </body>
+</html>
